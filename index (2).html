@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda da Aninha 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // =============================================
+  // 🔧 COLE SUAS CREDENCIAIS DO FIREBASE AQUI
+  // =============================================
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "SEU_PROJECT.firebaseapp.com",
+    projectId: "SEU_PROJECT_ID",
+    storageBucket: "SEU_PROJECT.appspot.com",
+    messagingSenderId: "SEU_SENDER_ID",
+    appId: "SEU_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbFns = { collection, addDoc, getDocs };
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event("firebase-ready"));
+</script>
+
+<style>
+  :root {
+    --pink: #ff6b9d;
+    --pink-light: #ffb3cf;
+    --pink-dark: #d94f7e;
+    --yellow: #ffe066;
+    --mint: #b5ead7;
+    --lavender: #c9b8ff;
+    --bg: #fff5f8;
+    --card: #ffffff;
+    --text: #2d1b25;
+    --muted: #a07080;
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(255,107,157,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 90% 80%, rgba(201,184,255,0.10) 0%, transparent 50%);
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  header {
+    padding: 40px 20px 30px;
+    text-align: center;
+  }
+  .header-bubble {
+    display: inline-block;
+    background: var(--card);
+    border: 3px solid var(--pink);
+    border-radius: 30px;
+    padding: 22px 36px;
+    box-shadow: 6px 6px 0 var(--pink-light);
+    position: relative;
+  }
+  .header-bubble h1 {
+    font-family: 'Caveat', cursive;
+    font-size: clamp(2rem, 6vw, 3rem);
+    color: var(--pink-dark);
+    font-weight: 700;
+  }
+  .header-bubble p { font-size: 0.92rem; color: var(--muted); margin-top: 4px; }
+  .sticker { position: absolute; font-size: 1.8rem; }
+  .sticker-1 { top: -18px; right: -14px; transform: rotate(15deg); }
+  .sticker-2 { bottom: -16px; left: -10px; transform: rotate(-10deg); }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 16px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 2.5px solid #ffe0ec;
+    box-shadow: 5px 5px 0 #ffd6e7;
+    overflow: hidden;
+  }
+  .card-header {
+    background: linear-gradient(90deg, var(--pink) 0%, #ff9ec3 100%);
+    padding: 14px 22px;
+  }
+  .card-header span {
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    color: white;
+    font-weight: 700;
+  }
+  .card-body { padding: 22px; }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .month-nav h2 {
+    font-family: 'Caveat', cursive;
+    font-size: 1.5rem;
+    color: var(--pink-dark);
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+  .nav-btn {
+    background: var(--pink-light);
+    border: 2px solid var(--pink);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    color: var(--pink-dark);
+    cursor: pointer;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .nav-btn:hover { background: var(--pink); color: white; transform: scale(1.1); }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .weekdays span {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .16s;
+    border: 2px solid transparent;
+    position: relative;
+  }
+  .day:hover:not(.empty):not(.past):not(.unavailable) {
+    background: #fff0f5;
+    border-color: var(--pink-light);
+    transform: scale(1.08) rotate(-1deg);
+  }
+  .day.empty { cursor: default; }
+  .day.today { background: var(--yellow); border-color: #f5c800; font-weight: 700; }
+  .day.selected {
+    background: var(--pink) !important;
+    border-color: var(--pink-dark) !important;
+    color: white !important;
+    transform: scale(1.1) rotate(-1deg);
+    box-shadow: 3px 3px 0 var(--pink-dark);
+  }
+  .day.past { opacity: 0.3; cursor: not-allowed; }
+  .day.unavailable { background: #f5f5f5; opacity: 0.45; cursor: not-allowed; }
+  .day .dot {
+    width: 5px; height: 5px;
+    background: var(--mint);
+    border-radius: 50%;
+    margin-top: 1px;
+  }
+  .day:not(.has-booking) .dot { display: none; }
+
+  .slots-title {
+    font-family: 'Caveat', cursive;
+    font-size: 1.2rem;
+    color: var(--pink-dark);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .slots-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .slot-btn {
+    padding: 7px 16px;
+    border-radius: 30px;
+    border: 2.5px solid var(--pink-light);
+    background: white;
+    color: var(--pink-dark);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .slot-btn:hover { background: var(--pink-light); transform: rotate(-1deg); }
+  .slot-btn.active {
+    background: var(--pink);
+    border-color: var(--pink-dark);
+    color: white;
+    transform: rotate(-2deg) scale(1.05);
+    box-shadow: 2px 2px 0 var(--pink-dark);
+  }
+  .slot-btn.booked {
+    background: #f0f0f0; border-color: #ddd; color: #bbb;
+    cursor: not-allowed; text-decoration: line-through; font-style: italic;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--pink-dark);
+    margin-bottom: 5px;
+  }
+  .form-hint {
+    font-size: 0.78rem; color: var(--muted); margin-bottom: 8px;
+    display: block; font-style: italic;
+  }
+  .form-row { margin-bottom: 16px; }
+
+  input[type=text], input[type=email], textarea {
+    width: 100%;
+    padding: 11px 15px;
+    border: 2.5px solid #ffd6e7;
+    border-radius: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.93rem;
+    color: var(--text);
+    background: #fff8fb;
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+  }
+  input:focus, textarea:focus {
+    border-color: var(--pink);
+    box-shadow: 3px 3px 0 var(--pink-light);
+  }
+  textarea { resize: none; }
+
+  .look-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .look-chip {
+    padding: 7px 14px;
+    border-radius: 30px;
+    border: 2.5px solid #ffd6e7;
+    background: white;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+  }
+  .look-chip:hover { background: #fff0f5; transform: scale(1.05); }
+  .look-chip.selected {
+    background: var(--lavender);
+    border-color: #a08de0;
+    color: #4a3580;
+    transform: rotate(-1deg) scale(1.05);
+    box-shadow: 2px 2px 0 #a08de0;
+  }
+
+  .name-reaction {
+    font-family: 'Caveat', cursive;
+    font-size: 1rem;
+    color: var(--pink);
+    margin-top: 5px;
+    min-height: 22px;
+    font-weight: 600;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--pink);
+    border: 3px solid var(--pink-dark);
+    border-radius: 16px;
+    color: white;
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    box-shadow: 4px 4px 0 var(--pink-dark);
+    margin-top: 4px;
+  }
+  .submit-btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--pink-dark); }
+  .submit-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--pink-dark); }
+  .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: white;
+    border: 3px solid var(--pink);
+    box-shadow: 5px 5px 0 var(--pink-light);
+    color: var(--pink-dark);
+    padding: 12px 26px;
+    border-radius: 30px;
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: var(--mint); color: #2d7a5a; box-shadow: 5px 5px 0 var(--mint); }
+  #toast.error { border-color: #ff8080; color: #c02020; box-shadow: 5px 5px 0 #ffb3b3; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .fadein { animation: fadeUp .3s ease; }
+
+  @media (max-width: 480px) {
+    .card-body { padding: 14px; }
+    .day { font-size: 0.75rem; border-radius: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bubble">
+    <span class="sticker sticker-1">✨</span>
+    <span class="sticker sticker-2">🌸</span>
+    <h1>Agenda da Aninha</h1>
+    <p>escolhe um dia, escolhe um horário, a gente se vê! 😘</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-header"><span>📅 quando vai ser?</span></div>
+    <div class="card-body">
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button class="nav-btn" id="nextMonth">›</button>
+      </div>
+      <div class="weekdays">
+        <span>Dom</span><span>Seg</span><span>Ter</span>
+        <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="days" id="daysGrid"></div>
+    </div>
+  </div>
+
+  <div class="card fadein" id="slotsCard" style="display:none">
+    <div class="card-header"><span>⏰ que horas?</span></div>
+    <div class="card-body">
+      <p class="slots-title" id="slotTitle"></p>
+      <div class="slots-grid" id="slotsGrid"></div>
+    </div>
+  </div>
+
+  <div class="card fadein" id="formCard" style="display:none">
+    <div class="card-header"><span>💌 conta um pouco mais...</span></div>
+    <div class="card-body">
+
+      <div class="form-row">
+        <label class="form-label">seu nome 😊</label>
+        <input type="text" id="inputName" placeholder="como você se chama?">
+        <p class="name-reaction" id="nameReaction"></p>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">e-mail 📬</label>
+        <input type="email" id="inputEmail" placeholder="pra eu confirmar contigo">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">qual o programa? 🎉</label>
+        <span class="form-hint">o que você tá planejando? me conta!</span>
+        <input type="text" id="inputPrograma" placeholder="ex: almoço, café, passeio, balada...">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">onde vai ser? 📍</label>
+        <input type="text" id="inputLocal" placeholder="nome do lugar ou endereço">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">qual look devo usar? 👗</label>
+        <span class="form-hint">me ajuda a me preparar!</span>
+        <div class="look-grid" id="lookGrid"></div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">algum recado? 💬</label>
+        <textarea id="inputMsg" rows="2" placeholder="pode mandar beijo aqui também haha"></textarea>
+      </div>
+
+      <button class="submit-btn" id="submitBtn">tô dentro! marcar agora 🌸</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const WEEKLY_BLOCKS = {
+  1: [[9,12],[14,19]],
+  2: [[9,12],[14,19]],
+  3: [[9,12],[14,19]],
+  4: [[9,12],[12,14],[14,19]],
+  5: [[9,12],[14,19]],
+};
+
+const DATE_BLOCKS = {
+  "2026-03-25": [[19,24]],
+  "2026-03-27": [[12,14]],
+  "2026-03-28": [[12,14]],
+  "2026-04-02": "all",
+  "2026-04-03": "all",
+  "2026-04-04": "all",
+  "2026-04-05": "all",
+};
+
+const LOOKS = [
+  { emoji: "👗", label: "casual" },
+  { emoji: "👙", label: "roupa de praia" },
+  { emoji: "🥻", label: "romântico" },
+  { emoji: "🧢", label: "esportivo" },
+  { emoji: "✨", label: "arrumado/balada" },
+  { emoji: "☕", label: "confortável/cafézinho" },
+  { emoji: "🤷", label: "tanto faz" },
+];
+
+const NAME_REACTIONS = [
+  "juro que dessa vez não darei bolo 🤞",
+  "prometo chegar no horário! 🕐",
+  "já tô me arrumando 💅",
+  "ai que saudade de te ver!! 🥹",
+  "você merece todo o meu sorriso 😁",
+  "vai ser incrível, pode apostar 🌟",
+];
+
+function pad(n) { return String(n).padStart(2,'0'); }
+function toDateStr(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+const monthNames=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function generateSlots(ds) {
+  const date=parseDate(ds), dow=date.getDay(), blocks=[];
+  if(WEEKLY_BLOCKS[dow]) blocks.push(...WEEKLY_BLOCKS[dow]);
+  if(DATE_BLOCKS[ds]) {
+    if(DATE_BLOCKS[ds]==="all") return [];
+    blocks.push(...DATE_BLOCKS[ds]);
+  }
+  const slots=[];
+  for(let h=8;h<=20;h+=2) {
+    const s=h,e=h+2;
+    if(!blocks.some(([bi,bf])=>!(e<=bi||s>=bf))) slots.push({label:pad(s)+':00 – '+pad(e)+':00',start:s,end:e});
+  }
+  return slots;
+}
+
+let curYear,curMonth,selectedDate=null,selectedSlot=null,selectedLook='';
+let bookedSlots={},firebaseOk=false,db,fbFns,nameReactionPicked=null;
+function today(){return new Date();}
+
+function waitFirebase(cb){
+  if(window._firebaseReady){db=window._db;fbFns=window._fbFns;firebaseOk=true;cb();}
+  else document.addEventListener('firebase-ready',()=>{db=window._db;fbFns=window._fbFns;firebaseOk=true;cb();});
+}
+
+async function loadBookings(){
+  if(!firebaseOk)return;
+  try{
+    const snap=await fbFns.getDocs(fbFns.collection(db,'agendamentos'));
+    bookedSlots={};
+    snap.forEach(doc=>{const d=doc.data();if(!bookedSlots[d.date])bookedSlots[d.date]=[];bookedSlots[d.date].push({start:d.start,name:d.name});});
+    renderCalendar();
+  }catch(e){console.warn(e);}
+}
+
+async function saveBooking(data){
+  if(!firebaseOk){if(!bookedSlots[data.date])bookedSlots[data.date]=[];bookedSlots[data.date].push(data);return true;}
+  try{await fbFns.addDoc(fbFns.collection(db,'agendamentos'),data);return true;}catch(e){console.error(e);return false;}
+}
+
+function renderCalendar(){
+  const t=today(),grid=document.getElementById('daysGrid');
+  document.getElementById('monthTitle').textContent=monthNames[curMonth]+' '+curYear;
+  const firstDay=new Date(curYear,curMonth,1).getDay();
+  const daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+  grid.innerHTML='';
+  for(let i=0;i<firstDay;i++){const el=document.createElement('div');el.className='day empty';grid.appendChild(el);}
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(curYear,curMonth,d),ds=toDateStr(date),el=document.createElement('div');
+    el.className='day';
+    const isPast=date<new Date(t.getFullYear(),t.getMonth(),t.getDate());
+    const isAll=DATE_BLOCKS[ds]==="all";
+    const slots=generateSlots(ds);
+    if(isPast)el.classList.add('past');
+    else if(isAll||slots.length===0)el.classList.add('unavailable');
+    if(toDateStr(t)===ds)el.classList.add('today');
+    if(selectedDate===ds)el.classList.add('selected');
+    if(bookedSlots[ds]?.length)el.classList.add('has-booking');
+    el.innerHTML='<span>'+d+'</span><span class="dot"></span>';
+    if(!isPast&&!isAll&&slots.length>0)el.addEventListener('click',()=>selectDate(ds));
+    grid.appendChild(el);
+  }
+}
+
+function selectDate(ds){
+  selectedDate=ds;selectedSlot=null;
+  renderCalendar();renderSlots();
+  document.getElementById('formCard').style.display='none';
+  document.getElementById('slotsCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderSlots(){
+  const card=document.getElementById('slotsCard'),grid=document.getElementById('slotsGrid'),title=document.getElementById('slotTitle');
+  if(!selectedDate){card.style.display='none';return;}
+  const date=parseDate(selectedDate);
+  title.textContent=date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  card.style.display='block';
+  const slots=generateSlots(selectedDate),taken=(bookedSlots[selectedDate]||[]).map(b=>b.start);
+  grid.innerHTML='';
+  if(!slots.length){grid.innerHTML='<p style="color:var(--muted);font-size:.9rem">nenhum horário disponível esse dia 😢</p>';return;}
+  slots.forEach(slot=>{
+    const btn=document.createElement('button'),isBooked=taken.includes(slot.start);
+    btn.className='slot-btn'+(isBooked?' booked':'');
+    btn.textContent=isBooked?slot.label+' (ocupado)':slot.label;
+    if(!isBooked)btn.addEventListener('click',()=>{
+      document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');selectedSlot=slot;
+      document.getElementById('formCard').style.display='block';
+      document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function renderLooks(){
+  const grid=document.getElementById('lookGrid');
+  LOOKS.forEach(({emoji,label})=>{
+    const chip=document.createElement('div');
+    chip.className='look-chip';chip.textContent=emoji+' '+label;
+    chip.addEventListener('click',()=>{
+      document.querySelectorAll('.look-chip').forEach(c=>c.classList.remove('selected'));
+      chip.classList.add('selected');selectedLook=emoji+' '+label;
+    });
+    grid.appendChild(chip);
+  });
+}
+
+let reactionTimeout;
+document.getElementById && (() => {
+  window.addEventListener('load',()=>{
+    document.getElementById('inputName').addEventListener('input',e=>{
+      clearTimeout(reactionTimeout);
+      const val=e.target.value.trim(),el=document.getElementById('nameReaction');
+      if(val.length>=2){
+        reactionTimeout=setTimeout(()=>{
+          if(!nameReactionPicked)nameReactionPicked=NAME_REACTIONS[Math.floor(Math.random()*NAME_REACTIONS.length)];
+          el.textContent=nameReactionPicked;
+        },600);
+      }else{el.textContent='';nameReactionPicked=null;}
+    });
+  });
+})();
+
+document.getElementById('submitBtn') && document.getElementById('submitBtn').addEventListener('click',async()=>{
+  const name=document.getElementById('inputName').value.trim();
+  const email=document.getElementById('inputEmail').value.trim();
+  const programa=document.getElementById('inputPrograma').value.trim();
+  const local=document.getElementById('inputLocal').value.trim();
+  const msg=document.getElementById('inputMsg').value.trim();
+  if(!name||!email){showToast('faltou nome e e-mail! 🙈','error');return;}
+  if(!selectedDate||!selectedSlot){showToast('escolhe data e horário primeiro! 📅','error');return;}
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='salvando... 🌸';
+  const ok=await saveBooking({date:selectedDate,start:selectedSlot.start,end:selectedSlot.end,label:selectedSlot.label,name,email,programa,local,look:selectedLook,msg,createdAt:new Date().toISOString()});
+  btn.disabled=false;btn.textContent='tô dentro! marcar agora 🌸';
+  if(ok){
+    showToast('marcado! te vejo lá 🥳🌸','success');
+    if(!bookedSlots[selectedDate])bookedSlots[selectedDate]=[];
+    bookedSlots[selectedDate].push({start:selectedSlot.start,name});
+    selectedDate=null;selectedSlot=null;selectedLook='';nameReactionPicked=null;
+    ['inputName','inputEmail','inputPrograma','inputLocal','inputMsg'].forEach(id=>document.getElementById(id).value='');
+    document.querySelectorAll('.look-chip').forEach(c=>c.classList.remove('selected'));
+    document.getElementById('nameReaction').textContent='';
+    document.getElementById('formCard').style.display='none';
+    document.getElementById('slotsCard').style.display='none';
+    renderCalendar();
+  }else{showToast('erro ao salvar 😢 tenta de novo!','error');}
+});
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=type?'show '+type:'show';
+  setTimeout(()=>{t.className=type;},3500);
+}
+
+document.getElementById('prevMonth').addEventListener('click',()=>{
+  curMonth--;if(curMonth<0){curMonth=11;curYear--;}
+  selectedDate=null;selectedSlot=null;
+  document.getElementById('slotsCard').style.display='none';
+  document.getElementById('formCard').style.display='none';
+  renderCalendar();
+});
+document.getElementById('nextMonth').addEventListener('click',()=>{
+  curMonth++;if(curMonth>11){curMonth=0;curYear++;}
+  selectedDate=null;selectedSlot=null;
+  document.getElementById('slotsCard').style.display='none';
+  document.getElementById('formCard').style.display='none';
+  renderCalendar();
+});
+
+const t=today();curYear=t.getFullYear();curMonth=t.getMonth();
+renderCalendar();renderLooks();
+waitFirebase(()=>loadBookings());
+
+window.addEventListener('load',()=>{
+  document.getElementById('inputName').addEventListener('input',e=>{
+    clearTimeout(reactionTimeout);
+    const val=e.target.value.trim(),el=document.getElementById('nameReaction');
+    if(val.length>=2){
+      reactionTimeout=setTimeout(()=>{
+        if(!nameReactionPicked)nameReactionPicked=NAME_REACTIONS[Math.floor(Math.random()*NAME_REACTIONS.length)];
+        el.textContent=nameReactionPicked;
+      },600);
+    }else{el.textContent='';nameReactionPicked=null;}
+  });
+});
+</script>
+</body>
+</html>
