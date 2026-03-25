@@ -235,9 +235,13 @@
     align-items: center;
     justify-content: center;
     font-size: 0.6rem;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    color: var(--rose-mid);
+    letter-spacing: 0.03em;
+    text-align: center;
+    padding: 2px 5px;
+    line-height: 1.3;
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
   }
   .slot-cell.free {
     cursor: pointer;
@@ -501,7 +505,7 @@
 
       <div class="form-row">
         <label class="form-label">quem é você? 👀</label>
-        <input type="text" id="inputName" placeholder="oi daniel!">
+        <input type="text" id="inputName" placeholder="oi dani!">
         <p class="name-reaction" id="nameReaction"></p>
       </div>
 
@@ -549,7 +553,7 @@ const WEEKLY_BUSY = {
 // Compromissos específicos por data
 // "all" = dia inteiro ocupado (com label opcional)
 const DATE_BUSY = {
-  "2026-03-25": { slots: [{start:19,end:24,label:'bazar no shopping com a Buba 🛍️'}] },
+  "2026-03-25": { slots: [{start:19,end:24,label:'bazar no shopping com a Duda 🛍️'}] },
   "2026-03-27": { slots: [{start:12,end:14,label:'almoço'}] },
   "2026-03-28": { slots: [{start:12,end:14,label:'almoço com a Nath 🥗'}] },
   "2026-04-02": { all: true, label:'viagem ✈️' },
@@ -569,6 +573,7 @@ const NAME_REACTIONS = [
   "juro que dessa vez não darei bolo 🤞",
   "prometo chegar no horário!",
   "já tô me arrumando 💅",
+  "ai que saudade de te ver!!",
   "vai ser incrível, pode apostar",
 ];
 
@@ -627,7 +632,7 @@ async function loadBookings(){
     snap.forEach(doc=>{
       const d=doc.data();
       if(!bookedSlots[d.date])bookedSlots[d.date]=[];
-      bookedSlots[d.date].push({start:d.start,name:d.name});
+      bookedSlots[d.date].push({start:d.start,name:d.name,programa:d.programa||''});
     });
     renderWeek();
   }catch(e){console.warn(e);}
@@ -685,7 +690,8 @@ function renderWeek(){
       const dateAllBusy=DATE_BUSY[ds]?.all;
       const busy=dateAllBusy||isBusy(ds,h);
       const past=isPast(ds,h);
-      const booked=(bookedSlots[ds]||[]).some(b=>b.start===h);
+      const bookedEntry=(bookedSlots[ds]||[]).find(b=>b.start===h);
+      const booked=!!bookedEntry;
       const isSel=selectedDate===ds&&selectedHour===h;
 
       if(isSel){
@@ -702,7 +708,7 @@ function renderWeek(){
         cell.classList.add('booked');
         const lbl2=document.createElement('div');
         lbl2.className='booked-label';
-        lbl2.textContent='agendado';
+        lbl2.textContent=bookedEntry?.programa||'agendado';
         cell.appendChild(lbl2);
       } else {
         cell.classList.add('free');
@@ -775,7 +781,7 @@ document.getElementById('submitBtn').addEventListener('click',async()=>{
   if(ok){
     showToast('agendado! até lá 🌸','success');
     if(!bookedSlots[selectedDate])bookedSlots[selectedDate]=[];
-    bookedSlots[selectedDate].push({start:selectedHour,name});
+    bookedSlots[selectedDate].push({start:selectedHour,name,programa});
     selectedDate=null; selectedHour=null; selectedLook=''; nameReactionPicked=null;
     ['inputName','inputPrograma','inputLocal','inputMsg'].forEach(id=>document.getElementById(id).value='');
     document.querySelectorAll('.look-chip').forEach(c=>c.classList.remove('selected'));
