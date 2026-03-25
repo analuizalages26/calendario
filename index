@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda da Aninha</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDzlsTGVhxXtLmIgQDYu5XSRq-nyvH8qqc",
+    authDomain: "calendario-b0205.firebaseapp.com",
+    projectId: "calendario-b0205",
+    storageBucket: "calendario-b0205.firebasestorage.app",
+    messagingSenderId: "748017687707",
+    appId: "1:748017687707:web:f83469f304cd87dcdf7a3e"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbFns = { collection, addDoc, getDocs };
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event("firebase-ready"));
+</script>
+
+<style>
+  :root {
+    --bg:        #faf9f7;
+    --surface:   #ffffff;
+    --border:    #ede9e4;
+    --rose:      #d4a0a0;
+    --rose-mid:  #c48080;
+    --rose-deep: #a85f5f;
+    --rose-bg:   #fdf5f5;
+    --busy:      #efefed;
+    --busy-text: #b0a89e;
+    --text:      #2e2622;
+    --muted:     #9e8e86;
+    --mint:      #a8c5b5;
+    --radius:    12px;
+    --shadow:    0 2px 20px rgba(46,38,34,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-weight: 300;
+  }
+
+  /* HEADER */
+  header {
+    padding: 48px 24px 32px;
+    text-align: center;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+  header h1 span { color: var(--rose-mid); }
+  header p {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .header-line {
+    width: 36px; height: 1px;
+    background: var(--rose);
+    margin: 14px auto 0;
+    opacity: 0.5;
+  }
+
+  /* CONTAINER */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* WEEK NAV */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+  .week-nav h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    text-transform: capitalize;
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .nav-btn:hover { border-color: var(--rose); color: var(--rose-mid); background: var(--rose-bg); }
+
+  /* GRID WRAPPER */
+  .grid-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* WEEK GRID */
+  .week-grid {
+    display: grid;
+    grid-template-columns: 52px repeat(7, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Day headers */
+  .day-header {
+    padding: 14px 4px 12px;
+    text-align: center;
+    border-left: 1px solid var(--border);
+  }
+  .day-header:first-child { border-left: none; }
+  .day-header .day-name {
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    display: block;
+  }
+  .day-header .day-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--text);
+    display: block;
+    margin-top: 2px;
+    line-height: 1;
+  }
+  .day-header.today .day-num {
+    color: var(--rose-mid);
+    font-weight: 500;
+  }
+  .day-header.today .day-name { color: var(--rose-mid); }
+  .corner { background: var(--bg); border-bottom: 1px solid var(--border); }
+
+  /* TIME ROWS */
+  .time-grid {
+    display: grid;
+    grid-template-columns: 52px repeat(7, 1fr);
+  }
+  .time-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    padding: 0 8px;
+    height: 52px;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 6px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .slot-cell {
+    height: 52px;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    transition: background .15s;
+  }
+
+  /* BLOCK STATES */
+  .slot-cell.busy {
+    background: var(--busy);
+    cursor: not-allowed;
+  }
+  .slot-cell.busy::after {
+    content: '';
+    position: absolute;
+    inset: 4px 6px;
+    border-radius: 6px;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.04) 3px,
+      rgba(0,0,0,0.04) 6px
+    );
+  }
+  .slot-cell.booked {
+    background: #f0ebe8;
+    cursor: not-allowed;
+  }
+  .slot-cell.booked .booked-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .slot-cell.free {
+    cursor: pointer;
+    background: white;
+  }
+  .slot-cell.free:hover {
+    background: var(--rose-bg);
+  }
+  .slot-cell.free:hover::after {
+    content: '+';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--rose-mid);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+  .slot-cell.selected {
+    background: var(--rose-mid) !important;
+    cursor: pointer;
+  }
+  .slot-cell.selected::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+  }
+  .slot-cell.past {
+    background: var(--bg);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 20px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* CARD FORM */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header .dot { width: 6px; height: 6px; background: var(--rose); border-radius: 50%; flex-shrink: 0; }
+  .card-header span {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .card-header .slot-info {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--rose-mid);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+  .card-body { padding: 22px; }
+
+  .form-row { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 0.67rem;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+  input[type=text], input[type=email], textarea {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.87rem;
+    font-weight: 300;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, textarea:focus { border-color: var(--rose); }
+  textarea { resize: none; }
+
+  .name-reaction {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.88rem;
+    color: var(--rose-mid);
+    margin-top: 5px;
+    min-height: 18px;
+    font-style: italic;
+  }
+
+  .look-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .look-chip {
+    padding: 6px 13px;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all .13s;
+    user-select: none;
+    letter-spacing: 0.02em;
+  }
+  .look-chip:hover { border-color: var(--rose); background: var(--rose-bg); }
+  .look-chip.selected { background: #ede9f8; border-color: #9e92c8; color: #3d3060; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--text);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .18s;
+    margin-top: 4px;
+  }
+  .submit-btn:hover { background: var(--rose-deep); }
+  .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 11px 26px;
+    border-radius: 30px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { background: var(--mint); color: #1a3d2b; }
+  #toast.error { background: #c07070; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .fadein { animation: fadeUp .22s ease; }
+
+  /* MOBILE SCROLL */
+  .grid-scroll { overflow-x: auto; }
+
+  @media (max-width: 600px) {
+    .time-grid, .week-grid { grid-template-columns: 44px repeat(7, minmax(46px, 1fr)); }
+    .slot-cell { height: 44px; }
+    .time-label { height: 44px; font-size: 0.55rem; }
+    .day-header .day-num { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agenda <span>da Aninha</span></h1>
+  <p>clica num horário livre e marca comigo!</p>
+  <div class="header-line"></div>
+</header>
+
+<div class="container">
+
+  <!-- NAV DA SEMANA -->
+  <div class="week-nav">
+    <button class="nav-btn" id="prevWeek">‹</button>
+    <h2 id="weekTitle"></h2>
+    <button class="nav-btn" id="nextWeek">›</button>
+  </div>
+
+  <!-- GRADE SEMANAL -->
+  <div class="grid-card">
+    <div class="grid-scroll">
+      <!-- Day headers -->
+      <div class="week-grid" id="dayHeaders">
+        <div class="corner"></div>
+        <!-- preenchido via JS -->
+      </div>
+      <!-- Time rows -->
+      <div class="time-grid" id="timeGrid"></div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:white;border:1px solid #ede9e4"></div>
+        disponível
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--busy)"></div>
+        ocupado
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f0ebe8"></div>
+        agendado
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--rose-mid)"></div>
+        selecionado
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div class="card fadein" id="formCard" style="display:none">
+    <div class="card-header">
+      <div class="dot"></div>
+      <span>boa, agora me conta!</span>
+      <span class="slot-info" id="slotInfo"></span>
+    </div>
+    <div class="card-body">
+
+      <div class="form-row">
+        <label class="form-label">quem é você? 👀</label>
+        <input type="text" id="inputName" placeholder="me fala seu nome!">
+        <p class="name-reaction" id="nameReaction"></p>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">qual o programa? 🎉</label>
+        <input type="text" id="inputPrograma" placeholder="almoço, café, passeio, date...">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">onde vai ser? 📍</label>
+        <input type="text" id="inputLocal" placeholder="nome do lugar ou endereço">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">qual look devo usar? 👗</label>
+        <div class="look-grid" id="lookGrid"></div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">algum recado? 💬</label>
+        <textarea id="inputMsg" rows="2" placeholder="pode mandar beijo também haha"></textarea>
+      </div>
+
+      <button class="submit-btn" id="submitBtn">tô dentro! 🌸</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DISPONIBILIDADE ──────────────────────────────────────
+// Blocos OCUPADOS por dia da semana [hInicio, hFim]
+const WEEKLY_BUSY = {
+  1: [[9,12],[14,19]],
+  2: [[9,12],[14,19]],
+  3: [[9,12],[14,19]],
+  4: [[9,12],[12,14],[14,19]], // qui: terapia no almoço
+  5: [[9,12],[14,19]],
+};
+const DATE_BUSY = {
+  "2026-03-25": [[19,24]],
+  "2026-03-27": [[12,14]],
+  "2026-03-28": [[12,14]],
+  "2026-04-02": "all",
+  "2026-04-03": "all",
+  "2026-04-04": "all",
+  "2026-04-05": "all",
+};
+
+// Horas exibidas na grade (slots de 2h)
+const HOURS = [8,10,12,14,16,18,20];
+const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MONTHS_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MONTHS_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const LOOKS = ["👗 casual","👙 praia","🥻 romântico","🧢 esportivo","✨ balada","☕ confortável","🤷 tanto faz"];
+const NAME_REACTIONS = [
+  "juro que dessa vez não darei bolo 🤞",
+  "prometo chegar no horário!",
+  "já tô me arrumando 💅",
+  "ai que saudade de te ver!!",
+  "vai ser incrível, pode apostar",
+];
+
+// ── HELPERS ──────────────────────────────────────────────
+function pad(n){return String(n).padStart(2,'0');}
+function toDateStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function today(){return new Date();}
+
+function getWeekStart(ref){
+  const d=new Date(ref);
+  d.setDate(d.getDate()-d.getDay()); // domingo
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function isBusy(ds, hStart){
+  const date=parseDate(ds), dow=date.getDay();
+  const db=DATE_BUSY[ds];
+  if(db==="all") return true;
+  const blocks=[...(WEEKLY_BUSY[dow]||[]),...(db||[])];
+  return blocks.some(([bi,bf])=>hStart>=bi && hStart<bf);
+}
+
+function isPast(ds, hStart){
+  const t=today();
+  const slotDate=parseDate(ds);
+  const slotDT=new Date(slotDate.getFullYear(),slotDate.getMonth(),slotDate.getDate(),hStart,0,0);
+  return slotDT < t;
+}
+
+// ── ESTADO ───────────────────────────────────────────────
+let weekStart = getWeekStart(today());
+let selectedDate=null, selectedHour=null, selectedLook='';
+let bookedSlots={}, firebaseOk=false, db, fbFns, nameReactionPicked=null;
+
+// ── FIREBASE ─────────────────────────────────────────────
+function waitFirebase(cb){
+  if(window._firebaseReady){db=window._db;fbFns=window._fbFns;firebaseOk=true;cb();}
+  else document.addEventListener('firebase-ready',()=>{db=window._db;fbFns=window._fbFns;firebaseOk=true;cb();});
+}
+async function loadBookings(){
+  if(!firebaseOk)return;
+  try{
+    const snap=await fbFns.getDocs(fbFns.collection(db,'agendamentos'));
+    bookedSlots={};
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(!bookedSlots[d.date])bookedSlots[d.date]=[];
+      bookedSlots[d.date].push({start:d.start,name:d.name});
+    });
+    renderWeek();
+  }catch(e){console.warn(e);}
+}
+async function saveBooking(data){
+  if(!firebaseOk){
+    if(!bookedSlots[data.date])bookedSlots[data.date]=[];
+    bookedSlots[data.date].push(data);return true;
+  }
+  try{await fbFns.addDoc(fbFns.collection(db,'agendamentos'),data);return true;}
+  catch(e){console.error(e);return false;}
+}
+
+// ── RENDER SEMANA ─────────────────────────────────────────
+function renderWeek(){
+  // Título
+  const ws=weekStart, we=new Date(ws); we.setDate(we.getDate()+6);
+  const title = ws.getMonth()===we.getMonth()
+    ? MONTHS_FULL[ws.getMonth()]+' '+ws.getFullYear()
+    : MONTHS_FULL[ws.getMonth()]+' — '+MONTHS_FULL[we.getMonth()]+' '+we.getFullYear();
+  document.getElementById('weekTitle').textContent=title;
+
+  // Cabeçalhos dos dias
+  const headers=document.getElementById('dayHeaders');
+  headers.innerHTML='<div class="corner"></div>';
+  const todayStr=toDateStr(today());
+  for(let i=0;i<7;i++){
+    const d=new Date(ws); d.setDate(d.getDate()+i);
+    const ds=toDateStr(d);
+    const div=document.createElement('div');
+    div.className='day-header'+(ds===todayStr?' today':'');
+    div.innerHTML=`<span class="day-name">${DAYS_PT[d.getDay()]}</span><span class="day-num">${d.getDate()}</span>`;
+    headers.appendChild(div);
+  }
+
+  // Grade de horários
+  const grid=document.getElementById('timeGrid');
+  grid.innerHTML='';
+  HOURS.forEach(h=>{
+    // Label de hora
+    const lbl=document.createElement('div');
+    lbl.className='time-label';
+    lbl.textContent=pad(h)+':00';
+    grid.appendChild(lbl);
+
+    // Células dos 7 dias
+    for(let i=0;i<7;i++){
+      const d=new Date(ws); d.setDate(d.getDate()+i);
+      const ds=toDateStr(d);
+      const cell=document.createElement('div');
+      cell.className='slot-cell';
+
+      const dateAllBusy=DATE_BUSY[ds]==="all";
+      const busy=dateAllBusy||isBusy(ds,h);
+      const past=isPast(ds,h);
+      const booked=(bookedSlots[ds]||[]).some(b=>b.start===h);
+      const isSel=selectedDate===ds&&selectedHour===h;
+
+      if(isSel){
+        cell.classList.add('selected');
+      } else if(past){
+        cell.classList.add('past');
+      } else if(busy){
+        cell.classList.add('busy');
+      } else if(booked){
+        cell.classList.add('booked');
+        const lbl2=document.createElement('div');
+        lbl2.className='booked-label';
+        lbl2.textContent='ocupado';
+        cell.appendChild(lbl2);
+      } else {
+        cell.classList.add('free');
+        cell.addEventListener('click',()=>selectSlot(ds,h));
+      }
+      grid.appendChild(cell);
+    }
+  });
+}
+
+function selectSlot(ds, h){
+  selectedDate=ds; selectedHour=h;
+  renderWeek();
+  // Atualiza info no form
+  const date=parseDate(ds);
+  const opts={weekday:'long',day:'numeric',month:'long'};
+  document.getElementById('slotInfo').textContent=
+    date.toLocaleDateString('pt-BR',opts)+' · '+pad(h)+':00 – '+pad(h+2)+':00';
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── LOOKS ─────────────────────────────────────────────────
+function renderLooks(){
+  const grid=document.getElementById('lookGrid');
+  LOOKS.forEach(label=>{
+    const chip=document.createElement('div');
+    chip.className='look-chip'; chip.textContent=label;
+    chip.addEventListener('click',()=>{
+      document.querySelectorAll('.look-chip').forEach(c=>c.classList.remove('selected'));
+      chip.classList.add('selected'); selectedLook=label;
+    });
+    grid.appendChild(chip);
+  });
+}
+
+// ── REAÇÃO AO NOME ────────────────────────────────────────
+let reactionTimeout;
+window.addEventListener('load',()=>{
+  document.getElementById('inputName').addEventListener('input',e=>{
+    clearTimeout(reactionTimeout);
+    const val=e.target.value.trim(), el=document.getElementById('nameReaction');
+    if(val.length>=2){
+      reactionTimeout=setTimeout(()=>{
+        if(!nameReactionPicked)
+          nameReactionPicked=NAME_REACTIONS[Math.floor(Math.random()*NAME_REACTIONS.length)];
+        el.textContent=nameReactionPicked;
+      },600);
+    }else{el.textContent=''; nameReactionPicked=null;}
+  });
+});
+
+// ── SUBMIT ────────────────────────────────────────────────
+document.getElementById('submitBtn').addEventListener('click',async()=>{
+  const name=document.getElementById('inputName').value.trim();
+  const programa=document.getElementById('inputPrograma').value.trim();
+  const local=document.getElementById('inputLocal').value.trim();
+  const msg=document.getElementById('inputMsg').value.trim();
+  if(!name){showToast('me fala seu nome! 😄','error');return;}
+  if(!selectedDate||selectedHour===null){showToast('selecione um horário na agenda','error');return;}
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='salvando...';
+  const ok=await saveBooking({
+    date:selectedDate, start:selectedHour, end:selectedHour+2,
+    label:pad(selectedHour)+':00 – '+pad(selectedHour+2)+':00',
+    name,programa,local,look:selectedLook,msg,
+    createdAt:new Date().toISOString()
+  });
+  btn.disabled=false; btn.textContent='tô dentro! 🌸';
+  if(ok){
+    showToast('agendado! até lá 🌸','success');
+    if(!bookedSlots[selectedDate])bookedSlots[selectedDate]=[];
+    bookedSlots[selectedDate].push({start:selectedHour,name});
+    selectedDate=null; selectedHour=null; selectedLook=''; nameReactionPicked=null;
+    ['inputName','inputPrograma','inputLocal','inputMsg'].forEach(id=>document.getElementById(id).value='');
+    document.querySelectorAll('.look-chip').forEach(c=>c.classList.remove('selected'));
+    document.getElementById('nameReaction').textContent='';
+    document.getElementById('formCard').style.display='none';
+    renderWeek();
+  }else{showToast('erro ao salvar, tenta de novo','error');}
+});
+
+// ── TOAST ─────────────────────────────────────────────────
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=type?'show '+type:'show';
+  setTimeout(()=>{t.className=type;},3200);
+}
+
+// ── NAV SEMANA ────────────────────────────────────────────
+document.getElementById('prevWeek').addEventListener('click',()=>{
+  weekStart.setDate(weekStart.getDate()-7);
+  selectedDate=null; selectedHour=null;
+  document.getElementById('formCard').style.display='none';
+  renderWeek();
+});
+document.getElementById('nextWeek').addEventListener('click',()=>{
+  weekStart.setDate(weekStart.getDate()+7);
+  selectedDate=null; selectedHour=null;
+  document.getElementById('formCard').style.display='none';
+  renderWeek();
+});
+
+// ── INIT ──────────────────────────────────────────────────
+renderWeek();
+renderLooks();
+waitFirebase(()=>loadBookings());
+</script>
+</body>
+</html>
